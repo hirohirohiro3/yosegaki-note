@@ -798,7 +798,9 @@ footer{padding:26px 0 52px;font-size:.75rem;letter-spacing:.08em;color:var(--sof
     overlay.appendChild(closeBtn);
     overlay.appendChild(inner);
     document.body.appendChild(overlay);
-    overlay.addEventListener('click',function(e){ if(e.target===overlay||e.target===closeBtn||e.target===inner) close(); });
+    // タップ(=クリック)はどこでも閉じる。パンはドラッグ(スクロール)なのでclickは発火しない
+    overlay.addEventListener('click',close);
+    closeBtn.addEventListener('click',function(e){ e.stopPropagation(); close(); });
   }
   function open(){
     if(!mq.matches) return;
