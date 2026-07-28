@@ -341,22 +341,23 @@ footer{padding:26px 0 52px;font-size:.75rem;letter-spacing:.08em;color:var(--sof
   body{font-size:15px;line-height:1.88}
   .wrap{padding:0 20px}
   section,.roomy{padding:44px 0}
-  /* 冒頭の色紙: スマホでは正方形の一枚として「置き方」を見せる(4章SVGと同形/文字は小・タップで拡大) */
-  .hero .board{aspect-ratio:1/1;padding:8px;cursor:zoom-in;overflow:hidden}
-  .hero .board::after{inset:5px}
-  .hero .grid{height:100%;grid-template-rows:repeat(5,auto);align-content:center;gap:4px}
-  .hero .board .n{line-height:1.25}
-  .hero .theme{padding:0}
-  .hero .theme p{font-size:clamp(.64rem,2.5vw,.82rem);line-height:1.2}
-  .hero .theme i{margin-top:2px;height:3px}
-  .hero .theme small{font-size:.46rem;line-height:1.1;margin-top:2px}
-  .hero .board .z-xl{font-size:.9rem;font-weight:600}
-  .hero .board .z-lg{font-size:.8rem}
-  .hero .board .z-md{font-size:.7rem}
-  .hero .board .z-sm{font-size:.64rem}
-  .hero .board .z-xs{font-size:.58rem}
-  .hero .board .n em{font-size:.52rem;margin-top:1px}
-  .hero .board .deco-maru{padding:3px 6px}
+  /* 冒頭の色紙: スマホでは正方形の一枚として「置き方」を見せる(4章SVGと同形/文字は小・タップで拡大)。
+     .sheet-sq クラスに付けることで、拡大時のクローンも同じ正方形の見た目を保つ */
+  .sheet-sq{aspect-ratio:1/1;padding:8px;cursor:zoom-in;overflow:hidden}
+  .sheet-sq::after{inset:5px}
+  .sheet-sq .grid{height:100%;grid-template-rows:repeat(5,auto);align-content:center;gap:4px}
+  .sheet-sq .n{line-height:1.25}
+  .sheet-sq .theme{padding:0}
+  .sheet-sq .theme p{font-size:clamp(.64rem,2.5vw,.82rem);line-height:1.2}
+  .sheet-sq .theme i{margin-top:2px;height:3px}
+  .sheet-sq .theme small{font-size:.46rem;line-height:1.1;margin-top:2px}
+  .sheet-sq .z-xl{font-size:.9rem;font-weight:600}
+  .sheet-sq .z-lg{font-size:.8rem}
+  .sheet-sq .z-md{font-size:.7rem}
+  .sheet-sq .z-sm{font-size:.64rem}
+  .sheet-sq .z-xs{font-size:.58rem}
+  .sheet-sq .n em{font-size:.52rem;margin-top:1px}
+  .sheet-sq .deco-maru{padding:3px 6px}
   .hero .zoom-hint{display:flex}
   .compare,.depth,.cards{grid-template-columns:1fr}
   .tier-b{grid-template-columns:repeat(2,1fr)}
@@ -370,11 +371,12 @@ footer{padding:26px 0 52px;font-size:.75rem;letter-spacing:.08em;color:var(--sof
   margin-top:10px;font-size:.72rem;letter-spacing:.08em;color:var(--soft)}
 .zoom-hint::before{content:"⤢";font-size:.95rem;color:var(--kin)}
 .board-overlay{position:fixed;inset:0;z-index:60;background:rgba(23,21,15,.82);
-  display:flex;align-items:flex-start;justify-content:center;
-  padding:56px 14px 28px;overflow:auto;cursor:zoom-out;-webkit-overflow-scrolling:touch}
+  overflow:auto;cursor:zoom-out;-webkit-overflow-scrolling:touch;
+  padding:52px 12px 24px;text-align:center}
 .board-overlay[hidden]{display:none}
-.board-overlay .board{width:min(96vw,460px);max-width:none;aspect-ratio:auto;
-  flex:0 0 auto;cursor:default;box-shadow:0 30px 64px -20px rgba(0,0,0,.6)}
+.zoom-inner{display:inline-block;text-align:left;position:relative}
+.board-overlay .board{cursor:default;transform-origin:top left;
+  box-shadow:0 30px 64px -20px rgba(0,0,0,.6)}
 .board-overlay-close{position:fixed;top:12px;right:14px;z-index:61;
   font-family:var(--sans);font-size:.74rem;letter-spacing:.12em;color:#faf8f4;
   background:rgba(0,0,0,.42);border:1px solid rgba(255,255,255,.45);
@@ -393,7 +395,7 @@ footer{padding:26px 0 52px;font-size:.75rem;letter-spacing:.08em;color:var(--sof
       <b>模擬</b>
     </p>
 
-    <div class="board">
+    <div class="board sheet-sq">
       <div class="grid">
 
         <div class="n z-sm c-kuro p1"><span class="deco-under">Zoomの入り方から教えてほしかったです</span><em>くろだ</em></div>
@@ -782,6 +784,7 @@ footer{padding:26px 0 52px;font-size:.75rem;letter-spacing:.08em;color:var(--sof
   if(!board) return;
   var mq=window.matchMedia('(max-width:680px)');
   var overlay,closeBtn;
+  var inner;
   function build(){
     overlay=document.createElement('div');
     overlay.className='board-overlay';
@@ -790,20 +793,29 @@ footer{padding:26px 0 52px;font-size:.75rem;letter-spacing:.08em;color:var(--sof
     closeBtn.className='board-overlay-close';
     closeBtn.type='button';
     closeBtn.textContent='閉じる ✕';
+    inner=document.createElement('div');
+    inner.className='zoom-inner';
     overlay.appendChild(closeBtn);
+    overlay.appendChild(inner);
     document.body.appendChild(overlay);
-    overlay.addEventListener('click',function(e){ if(e.target===overlay||e.target===closeBtn) close(); });
+    overlay.addEventListener('click',function(e){ if(e.target===overlay||e.target===closeBtn||e.target===inner) close(); });
   }
   function open(){
     if(!mq.matches) return;
     if(!overlay) build();
-    var old=overlay.querySelector('.board');
-    if(old) old.remove();
+    inner.innerHTML='';
+    var w=Math.round(board.getBoundingClientRect().width);
+    // 画面幅より少し大きめに拡大して、正方形の見た目そのままでパンできるようにする
+    var scale=Math.max(1.6,Math.min(2.4,(window.innerWidth*1.9)/w));
     var clone=board.cloneNode(true);
-    clone.style.cursor='default';
-    overlay.appendChild(clone);
+    clone.style.width=w+'px';
+    clone.style.transform='scale('+scale+')';
+    inner.style.width=(w*scale)+'px';
+    inner.style.height=(w*scale)+'px';
+    inner.appendChild(clone);
     overlay.hidden=false;
     document.body.style.overflow='hidden';
+    overlay.scrollTop=0; overlay.scrollLeft=Math.max(0,(inner.offsetWidth-overlay.clientWidth)/2);
   }
   function close(){ if(overlay){ overlay.hidden=true; document.body.style.overflow=''; } }
   board.addEventListener('click',open);
